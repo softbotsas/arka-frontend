@@ -5,7 +5,6 @@ const props = defineProps({
   credit: Object,
 })
 
-// IMPORTANTE: Añadimos 'open-add-products-modal' a la lista de eventos que este componente puede emitir.
 const emit = defineEmits([
   'close',
   'open-payment-modal',
@@ -14,7 +13,7 @@ const emit = defineEmits([
   'open-add-products-modal',
 ])
 
-const activeTab = ref('details') // 'details' o 'history'
+const activeTab = ref('details')
 
 const nextInstallmentValue = computed(() => {
   if (!props.credit || !props.credit.totalAmount || props.credit.remainingInstallments <= 0)
@@ -61,47 +60,52 @@ function formatDate(dateString) {
         </button>
       </div>
 
-      <div v-if="activeTab === 'details'" class="modal-body">
-        <h3>{{ credit.client.fullName }}</h3>
-        <p><strong>Cédula:</strong> {{ credit.client.cedula }}</p>
-        <hr />
-        <p><strong>Productos Adquiridos:</strong></p>
-        <ul class="product-list-detail">
-          <li v-for="(product, index) in credit.products" :key="index">
-            <span>{{ product.name }}</span>
-            <span class="product-price">{{ formatCurrency(product.price) }}</span>
-          </li>
-        </ul>
-        <p class="total-line">
-          <strong>Deuda Restante:</strong> {{ formatCurrency(credit.totalAmount) }}
-        </p>
-        <p>
-          <strong>Cuotas:</strong> {{ credit.remainingInstallments }} de
-          {{ credit.installments }} restantes
-        </p>
-        <p class="highlight">
-          <strong>Valor Próxima Cuota:</strong> {{ formatCurrency(nextInstallmentValue) }}
-        </p>
-        <p><strong>Próximo Pago:</strong> {{ formatDate(credit.nextPaymentDate) }}</p>
-        <p>
-          <strong>Estado:</strong>
-          <span :class="['status', credit.status]">{{ credit.status }}</span>
-        </p>
-      </div>
-
-      <div v-if="activeTab === 'history'" class="modal-body">
-        <div v-if="!credit.paymentHistory || credit.paymentHistory.length === 0" class="no-history">
-          <p>No se han registrado abonos para este crédito todavía.</p>
+      <!-- CAMBIO AQUÍ: La clase .modal-body ahora envuelve las dos vistas y tendrá el scroll -->
+      <div class="modal-body">
+        <div v-if="activeTab === 'details'">
+          <h3>{{ credit.client.fullName }}</h3>
+          <p><strong>Cédula:</strong> {{ credit.client.cedula }}</p>
+          <hr />
+          <p><strong>Productos Adquiridos:</strong></p>
+          <ul class="product-list-detail">
+            <li v-for="(product, index) in credit.products" :key="index">
+              <span>{{ product.name }}</span>
+              <span class="product-price">{{ formatCurrency(product.price) }}</span>
+            </li>
+          </ul>
+          <p class="total-line">
+            <strong>Deuda Restante:</strong> {{ formatCurrency(credit.totalAmount) }}
+          </p>
+          <p>
+            <strong>Cuotas:</strong> {{ credit.remainingInstallments }} de
+            {{ credit.installments }} restantes
+          </p>
+          <p class="highlight">
+            <strong>Valor Próxima Cuota:</strong> {{ formatCurrency(nextInstallmentValue) }}
+          </p>
+          <p><strong>Próximo Pago:</strong> {{ formatDate(credit.nextPaymentDate) }}</p>
+          <p>
+            <strong>Estado:</strong>
+            <span :class="['status', credit.status]">{{ credit.status }}</span>
+          </p>
         </div>
-        <ul v-else class="history-list">
-          <li v-for="(payment, index) in credit.paymentHistory" :key="index" class="history-item">
-            <span class="history-date">{{ formatDate(payment.date) }}</span>
-            <span class="history-amount">{{ formatCurrency(payment.amount) }}</span>
-          </li>
-        </ul>
+
+        <div v-if="activeTab === 'history'">
+          <div
+            v-if="!credit.paymentHistory || credit.paymentHistory.length === 0"
+            class="no-history"
+          >
+            <p>No se han registrado abonos para este crédito todavía.</p>
+          </div>
+          <ul v-else class="history-list">
+            <li v-for="(payment, index) in credit.paymentHistory" :key="index" class="history-item">
+              <span class="history-date">{{ formatDate(payment.date) }}</span>
+              <span class="history-amount">{{ formatCurrency(payment.amount) }}</span>
+            </li>
+          </ul>
+        </div>
       </div>
 
-      <!-- SECCIÓN DE ACCIONES MODIFICADA -->
       <div class="modal-actions">
         <button
           @click="emit('open-payment-modal')"
@@ -127,6 +131,7 @@ function formatDate(dateString) {
 </template>
 
 <style scoped>
+/* (Estilos anteriores) */
 hr {
   border: none;
   border-top: 1px solid var(--glass-border);
@@ -157,14 +162,6 @@ p strong {
   align-items: center;
   z-index: 1000;
 }
-.modal-content {
-  background: var(--dark-bg);
-  padding: 2rem;
-  border-radius: 16px;
-  border: 1px solid var(--glass-border);
-  width: 90%;
-  max-width: 500px;
-}
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -177,45 +174,6 @@ p strong {
   color: var(--text-primary);
   cursor: pointer;
 }
-
-/* ESTILOS MODIFICADOS Y NUEVOS */
-.modal-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Organiza los botones en una cuadrícula de 2x2 */
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-.action-btn {
-  width: 100%; /* Asegura que los botones llenen el espacio de la cuadrícula */
-  padding: 0.8rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-.action-btn.pay {
-  background-color: var(--primary-accent);
-  color: var(--dark-bg);
-}
-.action-btn.add {
-  background-color: #f59e0b;
-  color: white;
-} /* Color para el nuevo botón */
-.action-btn.edit {
-  background-color: #3b82f6;
-  color: white;
-}
-.action-btn.delete {
-  background-color: #ef4444;
-  color: white;
-}
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-/* (Fin de estilos modificados y nuevos) */
-
 .status {
   padding: 0.25rem 0.6rem;
   border-radius: 20px;
@@ -303,5 +261,64 @@ p strong {
 .history-amount {
   font-weight: 700;
   color: var(--text-primary);
+}
+
+/* --- CAMBIO AQUÍ: ESTILOS PARA EL SCROLL Y LOS BOTONES --- */
+
+.modal-content {
+  background: var(--dark-bg);
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+  width: 90%;
+  max-width: 500px;
+  /* Nuevos estilos para controlar la altura y el scroll */
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh; /* El modal nunca será más alto que el 90% de la pantalla */
+}
+
+.modal-body {
+  overflow-y: auto; /* AÑADE SCROLL VERTICAL SI EL CONTENIDO SE DESBORDA */
+  padding-right: 1rem; /* Espacio para que el scrollbar no se pegue al texto */
+  margin-right: -1rem; /* Compensa el padding para mantener la alineación */
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  /* El pie de página con los botones no tiene scroll */
+  flex-shrink: 0;
+}
+.action-btn {
+  width: 100%;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.action-btn.pay {
+  background-color: var(--primary-accent);
+  color: var(--dark-bg);
+}
+.action-btn.add {
+  background-color: #f59e0b;
+  color: white;
+}
+.action-btn.edit {
+  background-color: #3b82f6;
+  color: white;
+}
+.action-btn.delete {
+  background-color: #ef4444;
+  color: white;
+}
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
