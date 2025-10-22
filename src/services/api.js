@@ -16,6 +16,21 @@ export const deleteCredit = (id) => apiClient.delete(`/credits/${id}`)
 export const registerPayment = (id, amountPaid) =>
   apiClient.post(`/credits/${id}/payments`, { amount: amountPaid })
 
+// Función para agregar cuotas adicionales cuando se agota el límite
+export const addInstallmentsToCredit = (id, additionalInstallments) =>
+  apiClient.post(`/credits/${id}/add-installments`, {
+    additionalInstallments: additionalInstallments
+  })
+
+// Funciones para editar y eliminar abonos del historial
+export const editPayment = (creditId, paymentIndex, newAmount) =>
+  apiClient.put(`/credits/${creditId}/payments/${paymentIndex}`, {
+    amount: newAmount
+  })
+
+export const deletePayment = (creditId, paymentIndex) =>
+  apiClient.delete(`/credits/${creditId}/payments/${paymentIndex}`)
+
 // --- FUNCIONES DE AGENDA Y REPORTES (AHORA REALES) ---
 export const fetchAgendaData = () => apiClient.get('/agenda')
 export const fetchReportSummary = () => apiClient.get('/reports/summary')

@@ -11,6 +11,8 @@ const emit = defineEmits([
   'delete-credit',
   'edit-credit',
   'open-add-products-modal',
+  'edit-payment',
+  'delete-payment',
 ])
 
 const activeTab = ref('details')
@@ -99,8 +101,26 @@ function formatDate(dateString) {
           </div>
           <ul v-else class="history-list">
             <li v-for="(payment, index) in credit.paymentHistory" :key="index" class="history-item">
-              <span class="history-date">{{ formatDate(payment.date) }}</span>
-              <span class="history-amount">{{ formatCurrency(payment.amount) }}</span>
+              <div class="payment-info">
+                <span class="history-date">{{ formatDate(payment.date) }}</span>
+                <span class="history-amount">{{ formatCurrency(payment.amount) }}</span>
+              </div>
+              <div class="payment-actions">
+                <button
+                  @click="emit('edit-payment', index, payment)"
+                  class="action-btn edit-payment"
+                  title="Editar abono"
+                >
+                  ✏️
+                </button>
+                <button
+                  @click="emit('delete-payment', index)"
+                  class="action-btn delete-payment"
+                  title="Eliminar abono"
+                >
+                  🗑️
+                </button>
+              </div>
             </li>
           </ul>
         </div>
@@ -254,6 +274,12 @@ p strong {
 .history-item:last-child {
   border-bottom: none;
 }
+.payment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex-grow: 1;
+}
 .history-date {
   font-size: 0.9rem;
   color: var(--text-secondary);
@@ -261,6 +287,31 @@ p strong {
 .history-amount {
   font-weight: 700;
   color: var(--text-primary);
+}
+.payment-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 1rem;
+}
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+.action-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.edit-payment:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+.delete-payment:hover {
+  background-color: rgba(239, 68, 68, 0.2);
 }
 
 /* --- CAMBIO AQUÍ: ESTILOS PARA EL SCROLL Y LOS BOTONES --- */

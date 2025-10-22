@@ -1,6 +1,8 @@
 <script setup>
 import AddProductsModal from '../components/AddProductsModal.vue'
-import { addProductsToCredit } from '../services/api.js'
+import BalanceModal from '../components/BalanceModal.vue'
+import EditPaymentModal from '../components/EditPaymentModal.vue'
+import { addProductsToCredit, addInstallmentsToCredit, editPayment, deletePayment } from '../services/api.js'
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -18,6 +20,11 @@ const isDetailModalVisible = ref(false)
 const isPaymentModalVisible = ref(false)
 const selectedCredit = ref(null)
 const isAddProductsModalVisible = ref(false)
+const isBalanceModalVisible = ref(false)
+const remainingBalance = ref(0)
+const isEditPaymentModalVisible = ref(false)
+const selectedPaymentIndex = ref(null)
+const selectedPayment = ref(null)
 
 const filteredCredits = computed(() => {
   if (!searchTerm.value) return credits.value
@@ -90,18 +97,66 @@ async function handleDeleteCredit(creditId) {
 
 async function handlePaymentSubmit(amountPaid) {
   try {
-    await registerPayment(selectedCredit.value._id, amountPaid)
-    isPaymentModalVisible.value = false
-    toast.success('¡Abono registrado!')
-    await refreshData()
+    const response = await registerPayment(selectedCredit.value._id, amountPaid)
+
+    // Verificar si necesita más cuotas
+    if (response.data.needsMoreInstallments) {
+      isPaymentModalVisible.value = false
+      remainingBalance.value = response.data.remainingBalance
+      isBalanceModalVisible.value = true
+    } else {
+      isPaymentModalVisible.value = false
+      toast.success('¡Abono registrado!')
+      await refreshData()
+    }
   } catch (error) {
     toast.error('Error al registrar el pago.')
+  }
+}
+
+async function handleAddInstallments(additionalInstallments) {
+  try {
+    await addInstallmentsToCredit(selectedCredit.value._id, additionalInstallments)
+    isBalanceModalVisible.value = false
+    toast.success(`Se agregaron ${additionalInstallments} cuota(s) adicional(es)`)
+    await refreshData()
+  } catch (error) {
+    toast.error('Error al agregar las cuotas adicionales.')
   }
 }
 
 function handleEditCredit(creditId) {
   isDetailModalVisible.value = false
   router.push({ name: 'edit-credit', params: { id: creditId } })
+}
+
+async function handleEditPayment(paymentIndex, payment) {
+  selectedPaymentIndex.value = paymentIndex
+  selectedPayment.value = payment
+  isEditPaymentModalVisible.value = true
+}
+
+async function handleEditPaymentSubmit(newAmount) {
+  try {
+    await editPayment(selectedCredit.value._id, selectedPaymentIndex.value, newAmount)
+    isEditPaymentModalVisible.value = false
+    toast.success('Abono actualizado correctamente')
+    await refreshData()
+  } catch (error) {
+    toast.error('Error al actualizar el abono')
+  }
+}
+
+async function handleDeletePayment(paymentIndex) {
+  if (window.confirm('¿Estás seguro de que quieres eliminar este abono? Esta acción no se puede deshacer.')) {
+    try {
+      await deletePayment(selectedCredit.value._id, paymentIndex)
+      toast.success('Abono eliminado correctamente')
+      await refreshData()
+    } catch (error) {
+      toast.error('Error al eliminar el abono')
+    }
+  }
 }
 
 function formatCurrency(value) {
@@ -115,6 +170,7 @@ function formatCurrency(value) {
 </script>
 
 <template>
+  <div>
   <CreditDetailModal
     v-if="isDetailModalVisible"
     :credit="selectedCredit"
@@ -123,6 +179,8 @@ function formatCurrency(value) {
     @open-add-products-modal="openAddProductsModal"
     @delete-credit="handleDeleteCredit"
     @edit-credit="handleEditCredit"
+    @edit-payment="handleEditPayment"
+    @delete-payment="handleDeletePayment"
   />
   <PaymentModal
     v-if="isPaymentModalVisible"
@@ -135,6 +193,20 @@ function formatCurrency(value) {
     :credit="selectedCredit"
     @close="isAddProductsModalVisible = false"
     @submit="handleAddProductsSubmit"
+  />
+  <BalanceModal
+    v-if="isBalanceModalVisible"
+    :credit="selectedCredit"
+    :remaining-balance="remainingBalance"
+    @close="isBalanceModalVisible = false"
+    @add-installments="handleAddInstallments"
+  />
+  <EditPaymentModal
+    v-if="isEditPaymentModalVisible"
+    :payment="selectedPayment"
+    :payment-index="selectedPaymentIndex"
+    @close="isEditPaymentModalVisible = false"
+    @submit="handleEditPaymentSubmit"
   />
 
   <div class="manage-credits-container">
@@ -189,6 +261,7 @@ function formatCurrency(value) {
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
 
