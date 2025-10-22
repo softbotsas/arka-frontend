@@ -154,9 +154,14 @@ async function handleEditPayment(paymentIndex, payment) {
 
 async function handleEditPaymentSubmit(newAmount) {
   try {
-    await editPayment(selectedCredit.value._id, selectedPaymentIndex.value, newAmount)
+    const response = await editPayment(selectedCredit.value._id, selectedPaymentIndex.value, newAmount)
     isEditPaymentModalVisible.value = false
     toast.success('Abono actualizado correctamente')
+    
+    // Actualizar el crédito seleccionado con los nuevos datos
+    selectedCredit.value = response.data
+    
+    // Actualizar la lista completa
     await refreshData()
   } catch (error) {
     toast.error('Error al actualizar el abono')
@@ -166,8 +171,13 @@ async function handleEditPaymentSubmit(newAmount) {
 async function handleDeletePayment(paymentIndex) {
   if (window.confirm('¿Estás seguro de que quieres eliminar este abono? Esta acción no se puede deshacer.')) {
     try {
-      await deletePayment(selectedCredit.value._id, paymentIndex)
+      const response = await deletePayment(selectedCredit.value._id, paymentIndex)
       toast.success('Abono eliminado correctamente')
+      
+      // Actualizar el crédito seleccionado con los nuevos datos
+      selectedCredit.value = response.data
+      
+      // Actualizar la lista completa
       await refreshData()
     } catch (error) {
       toast.error('Error al eliminar el abono')
@@ -244,14 +254,14 @@ function formatDate(dateString) {
       <h2>Administración de Créditos</h2>
       <p>Selecciona un crédito para ver sus detalles.</p>
       <div class="toggle-section">
-        <button 
-          @click="toggleCompletedCredits" 
+        <button
+          @click="toggleCompletedCredits"
           :class="['toggle-btn', { active: !showCompletedCredits }]"
         >
           Créditos Activos ({{ credits.length }})
         </button>
-        <button 
-          @click="toggleCompletedCredits" 
+        <button
+          @click="toggleCompletedCredits"
           :class="['toggle-btn', { active: showCompletedCredits }]"
         >
           Créditos Completados ({{ completedCredits.length }})
