@@ -2,7 +2,7 @@
 import AddProductsModal from '../components/AddProductsModal.vue'
 import BalanceModal from '../components/BalanceModal.vue'
 import EditPaymentModal from '../components/EditPaymentModal.vue'
-import { addProductsToCredit, addInstallmentsToCredit, editPayment, deletePayment } from '../services/api.js'
+import { addProductsToCredit, addInstallmentsToCredit, editPayment, deletePayment, fetchCompletedCredits } from '../services/api.js'
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -14,6 +14,7 @@ import { creditToShow } from '../services/state.js'
 const router = useRouter()
 const toast = useToast()
 const credits = ref([])
+const completedCredits = ref([])
 const isLoading = ref(true)
 const searchTerm = ref('')
 const isDetailModalVisible = ref(false)
@@ -25,11 +26,22 @@ const remainingBalance = ref(0)
 const isEditPaymentModalVisible = ref(false)
 const selectedPaymentIndex = ref(null)
 const selectedPayment = ref(null)
+const showCompletedCredits = ref(false)
 
 const filteredCredits = computed(() => {
   if (!searchTerm.value) return credits.value
   const lowerCaseSearch = searchTerm.value.toLowerCase()
   return credits.value.filter(
+    (credit) =>
+      credit.client.fullName.toLowerCase().includes(lowerCaseSearch) ||
+      credit.client.cedula.includes(lowerCaseSearch),
+  )
+})
+
+const filteredCompletedCredits = computed(() => {
+  if (!searchTerm.value) return completedCredits.value
+  const lowerCaseSearch = searchTerm.value.toLowerCase()
+  return completedCredits.value.filter(
     (credit) =>
       credit.client.fullName.toLowerCase().includes(lowerCaseSearch) ||
       credit.client.cedula.includes(lowerCaseSearch),
@@ -55,8 +67,12 @@ async function handleAddProductsSubmit(data) {
 async function refreshData() {
   isLoading.value = true
   try {
-    const response = await fetchCredits()
-    credits.value = response.data
+    const [creditsResponse, completedResponse] = await Promise.all([
+      fetchCredits(),
+      fetchCompletedCredits()
+    ])
+    credits.value = creditsResponse.data
+    completedCredits.value = completedResponse.data
   } catch (error) {
     toast.error('No se pudieron cargar los créditos.')
   } finally {
@@ -167,6 +183,20 @@ function formatCurrency(value) {
     minimumFractionDigits: 0,
   })
 }
+
+function toggleCompletedCredits() {
+  showCompletedCredits.value = !showCompletedCredits.value
+}
+
+function formatDate(dateString) {
+  if (!dateString) return 'N/A'
+  const options = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }
+  return new Date(dateString).toLocaleDateString('es-CO', options)
+}
 </script>
 
 <template>
@@ -213,6 +243,20 @@ function formatCurrency(value) {
     <div class="view-header">
       <h2>Administración de Créditos</h2>
       <p>Selecciona un crédito para ver sus detalles.</p>
+      <div class="toggle-section">
+        <button 
+          @click="toggleCompletedCredits" 
+          :class="['toggle-btn', { active: !showCompletedCredits }]"
+        >
+          Créditos Activos ({{ credits.length }})
+        </button>
+        <button 
+          @click="toggleCompletedCredits" 
+          :class="['toggle-btn', { active: showCompletedCredits }]"
+        >
+          Créditos Completados ({{ completedCredits.length }})
+        </button>
+      </div>
     </div>
 
     <div class="search-bar-container">
@@ -226,37 +270,74 @@ function formatCurrency(value) {
 
     <div v-if="isLoading">Cargando...</div>
 
-    <div v-else-if="filteredCredits.length === 0" class="no-items-card">
-      <p>{{ searchTerm ? 'No se encontraron créditos.' : 'Aún no has creado ningún crédito.' }}</p>
+    <!-- Créditos Activos -->
+    <div v-if="!showCompletedCredits">
+      <div v-if="filteredCredits.length === 0" class="no-items-card">
+        <p>{{ searchTerm ? 'No se encontraron créditos activos.' : 'Aún no has creado ningún crédito activo.' }}</p>
+      </div>
+      <div v-else class="credits-list">
+        <div
+          v-for="credit in filteredCredits"
+          :key="credit._id"
+          class="credit-item"
+          @click="openDetailsModal(credit)"
+        >
+          <div class="item-main-info">
+            <span class="client-name">{{ credit.client.fullName }}</span>
+            <span class="product-name">
+              {{ credit.products[0].name }}
+              <span v-if="credit.products.length > 1" class="more-products"
+                >+{{ credit.products.length - 1 }} más</span
+              >
+            </span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Deuda Restante</span>
+              <span class="stat-value debt">{{ formatCurrency(credit.totalAmount) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Cuotas Pagadas</span>
+              <span class="stat-value"
+                >{{ credit.installments - credit.remainingInstallments }} /
+                {{ credit.installments }}</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div v-else class="credits-list">
-      <div
-        v-for="credit in filteredCredits"
-        :key="credit._id"
-        class="credit-item"
-        @click="openDetailsModal(credit)"
-      >
-        <div class="item-main-info">
-          <span class="client-name">{{ credit.client.fullName }}</span>
-          <span class="product-name">
-            {{ credit.products[0].name }}
-            <span v-if="credit.products.length > 1" class="more-products"
-              >+{{ credit.products.length - 1 }} más</span
-            >
-          </span>
-        </div>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <span class="stat-label">Deuda Restante</span>
-            <span class="stat-value debt">{{ formatCurrency(credit.totalAmount) }}</span>
+    <!-- Créditos Completados -->
+    <div v-else>
+      <div v-if="filteredCompletedCredits.length === 0" class="no-items-card">
+        <p>{{ searchTerm ? 'No se encontraron créditos completados.' : 'No hay créditos completados.' }}</p>
+      </div>
+      <div v-else class="credits-list">
+        <div
+          v-for="credit in filteredCompletedCredits"
+          :key="credit._id"
+          class="credit-item completed-credit"
+          @click="openDetailsModal(credit)"
+        >
+          <div class="item-main-info">
+            <span class="client-name">{{ credit.client.fullName }}</span>
+            <span class="product-name">
+              {{ credit.products[0].name }}
+              <span v-if="credit.products.length > 1" class="more-products"
+                >+{{ credit.products.length - 1 }} más</span
+              >
+            </span>
           </div>
-          <div class="stat-item">
-            <span class="stat-label">Cuotas Pagadas</span>
-            <span class="stat-value"
-              >{{ credit.installments - credit.remainingInstallments }} /
-              {{ credit.installments }}</span
-            >
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Monto Total</span>
+              <span class="stat-value completed">{{ formatCurrency(credit.originalAmount) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Completado</span>
+              <span class="stat-value completed-date">{{ formatDate(credit.completionDate) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -274,6 +355,31 @@ function formatCurrency(value) {
 .view-header {
   text-align: center;
   margin-bottom: 2rem;
+}
+.toggle-section {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+.toggle-btn {
+  padding: 0.75rem 1.5rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+.toggle-btn.active {
+  background: var(--primary-accent);
+  color: var(--dark-bg);
+  border-color: var(--primary-accent);
+}
+.toggle-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
 }
 .search-bar-container {
   margin-bottom: 1.5rem;
@@ -353,6 +459,21 @@ function formatCurrency(value) {
 .stat-value.debt {
   color: var(--primary-accent);
   font-size: 1.3rem;
+}
+.stat-value.completed {
+  color: #10b981;
+  font-size: 1.3rem;
+}
+.stat-value.completed-date {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.completed-credit {
+  opacity: 0.8;
+  border-left: 5px solid #10b981;
+}
+.completed-credit:hover {
+  opacity: 1;
 }
 .no-items-card {
   text-align: center;

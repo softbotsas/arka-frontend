@@ -9,6 +9,7 @@ export const fetchCreditsByClientId = (clientId) => apiClient.get(`/clients/${cl
 
 // --- FUNCIONES DE CRÉDITOS ---
 export const fetchCredits = () => apiClient.get('/credits')
+export const fetchCompletedCredits = () => apiClient.get('/credits/completed')
 export const fetchCreditById = (id) => apiClient.get(`/credits/${id}`)
 export const addCredit = (creditData) => apiClient.post('/credits', creditData)
 export const updateCredit = (id, creditData) => apiClient.put(`/credits/${id}`, creditData)
