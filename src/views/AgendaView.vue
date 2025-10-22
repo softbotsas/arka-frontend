@@ -10,6 +10,7 @@ const toast = useToast()
 const isLoading = ref(true)
 const agenda = ref({
   today: [],
+  upcoming: [],
 })
 
 onMounted(async () => {
@@ -29,6 +30,17 @@ function showDetails(credit) {
   router.push('/credits/manage')
 }
 
+// Formatea la fecha futura para que sea más legible
+function formatUpcomingDate(credit) {
+  const date = new Date(credit.nextPaymentDate)
+  if (credit.paymentFrequency === 'semanal') {
+    const weekday = date.toLocaleDateString('es-CO', { weekday: 'long' })
+    return `Este ${weekday}`
+  } else {
+    return `El ${date.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })}`
+  }
+}
+
 
 function formatCurrency(value) {
   if (typeof value !== 'number') return '$ 0'
@@ -44,7 +56,7 @@ function formatCurrency(value) {
   <div class="agenda-container">
     <div class="view-header">
       <h1>Agenda de Cobranza</h1>
-      <p>Créditos que se deben cobrar hoy.</p>
+      <p>Gestiona tus cobros de hoy y próximos.</p>
     </div>
 
     <div v-if="isLoading">Cargando agenda...</div>
@@ -76,6 +88,33 @@ function formatCurrency(value) {
           </div>
         </div>
       </div>
+
+      <!-- SECCIÓN DE PRÓXIMOS COBROS -->
+      <div class="agenda-section">
+        <h3 class="section-title upcoming">Próximos 7 Días ({{ agenda.upcoming.length }})</h3>
+        <div v-if="agenda.upcoming.length === 0" class="no-items-card">
+          <p>No hay cobros programados para la próxima semana.</p>
+        </div>
+        <div v-else class="agenda-list">
+          <div
+            v-for="item in agenda.upcoming"
+            :key="item._id"
+            class="agenda-card"
+            @click="showDetails(item)"
+          >
+            <div class="info-section">
+              <span class="client-name">{{ item.client.fullName }}</span>
+              <span class="product-name">{{ item.products.map((p) => p.name).join(', ') }}</span>
+            </div>
+            <div class="amount-section">
+              <span class="amount">{{
+                formatCurrency(item.totalAmount / item.remainingInstallments)
+              }}</span>
+              <span class="cuota-label due-date">{{ formatUpcomingDate(item) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -100,6 +139,9 @@ function formatCurrency(value) {
 }
 .section-title.today {
   color: var(--primary-accent);
+}
+.section-title.upcoming {
+  color: #3b82f6;
 }
 .agenda-list {
   display: flex;
@@ -162,6 +204,11 @@ function formatCurrency(value) {
   border-radius: 16px;
   padding: 1.5rem;
   color: var(--text-secondary);
+}
+
+.due-date {
+  font-weight: bold;
+  text-transform: capitalize;
 }
 
 </style>
