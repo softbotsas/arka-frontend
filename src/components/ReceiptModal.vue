@@ -26,7 +26,7 @@ function formatDate(dateString) {
   <div class="modal-overlay" @click.self="emit('close')">
     <div class="modal-content">
       <div class="receipt-header">
-        <span class="logo">S/A</span>
+        <img src="/logo.png" alt="Arka" class="logo-img" />
         <h2>Arka ha generado un crédito</h2>
       </div>
       <div class="receipt-body">
@@ -88,10 +88,11 @@ function formatDate(dateString) {
   padding-bottom: 1rem;
   margin-bottom: 1rem;
 }
-.logo {
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--primary-accent);
+.logo-img {
+  display: block;
+  width: min(100%, 220px);
+  height: auto;
+  margin: 0 auto;
 }
 h2 {
   margin: 0.5rem 0 0 0;

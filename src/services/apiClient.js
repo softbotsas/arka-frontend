@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-const API_URL = 'http://localhost:3000/api'
+// En producción usa el mismo dominio que sirve el frontend. Apache reenvía
+// /api al backend Node, evitando depender del dominio anterior y de CORS.
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 const apiClient = axios.create({
   baseURL: API_URL,

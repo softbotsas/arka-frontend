@@ -9,6 +9,7 @@ const router = useRouter()
 const toast = useToast()
 const clients = ref([])
 const clientSelectionMode = ref('existing')
+const clientSearch = ref('')
 const newClient = ref({ fullName: '', cedula: '', phone: '', address: '' })
 const newCredit = ref({
   client: '',
@@ -30,6 +31,19 @@ const valorCuota = computed(() => {
     return totalAmount.value / newCredit.value.installments
   }
   return 0
+})
+
+const filteredClients = computed(() => {
+  const search = clientSearch.value.trim().toLowerCase()
+  if (!search) return clients.value
+
+  return clients.value.filter((client) => {
+    const fullName = (client.fullName || '').toLowerCase()
+    const cedula = String(client.cedula || '')
+    const phone = String(client.phone || '')
+
+    return fullName.includes(search) || cedula.includes(search) || phone.includes(search)
+  })
 })
 
 onMounted(async () => {
@@ -127,12 +141,32 @@ function formatCurrency(value) {
           >
         </div>
         <div v-if="clientSelectionMode === 'existing'" class="form-group">
-          <select id="client" v-model="newCredit.client" required>
+          <label for="client-search">Buscar cliente</label>
+          <input
+            id="client-search"
+            v-model="clientSearch"
+            type="search"
+            placeholder="Nombre, cédula o teléfono"
+            autocomplete="off"
+          />
+          <p class="search-result-count">
+            {{ filteredClients.length }}
+            {{ filteredClients.length === 1 ? 'cliente encontrado' : 'clientes encontrados' }}
+          </p>
+          <select
+            id="client"
+            v-model="newCredit.client"
+            :disabled="filteredClients.length === 0"
+            required
+          >
             <option disabled value="">-- Clientes Registrados --</option>
-            <option v-for="client in clients" :key="client._id" :value="client._id">
+            <option v-for="client in filteredClients" :key="client._id" :value="client._id">
               {{ client.fullName }} - CC: {{ client.cedula }}
             </option>
           </select>
+          <p v-if="filteredClients.length === 0" class="no-search-results">
+            No se encontraron clientes con esos datos.
+          </p>
         </div>
         <div v-if="clientSelectionMode === 'new'" class="new-client-form highlighted-section">
           <input type="text" v-model="newClient.fullName" placeholder="Nombre Completo" required />
@@ -243,6 +277,16 @@ legend {
   display: block;
   margin-bottom: 0.5rem;
   color: var(--text-secondary);
+}
+.search-result-count {
+  margin: -0.45rem 0 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.no-search-results {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
 }
 input,
 select {

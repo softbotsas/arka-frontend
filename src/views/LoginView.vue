@@ -37,7 +37,7 @@ async function handleLogin() {
 <template>
   <div class="login-container">
     <div class="login-card">
-      <span class="logo">S/A</span>
+      <img src="/logo.png" alt="Arka" class="logo-img" />
       <h2>Iniciar Sesión</h2>
       <form @submit.prevent="handleLogin">
         <input type="text" v-model="username" placeholder="Usuario" required />
@@ -66,10 +66,11 @@ async function handleLogin() {
   width: 90%;
   max-width: 400px;
 }
-.logo {
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: var(--primary-accent);
+.logo-img {
+  display: block;
+  width: min(100%, 260px);
+  height: auto;
+  margin: 0 auto;
 }
 h2 {
   margin: 1rem 0 1.5rem 0;
