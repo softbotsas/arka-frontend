@@ -11,6 +11,7 @@ const emit = defineEmits([
   'delete-credit',
   'edit-credit',
   'open-add-products-modal',
+  'open-edit-products-modal',
   'edit-payment',
   'delete-payment',
 ])
@@ -68,7 +69,16 @@ function formatDate(dateString) {
           <h3>{{ credit.client.fullName }}</h3>
           <p><strong>Cédula:</strong> {{ credit.client.cedula }}</p>
           <hr />
-          <p><strong>Productos Adquiridos:</strong></p>
+          <div class="products-header">
+            <p><strong>Productos Adquiridos:</strong></p>
+            <button
+              type="button"
+              class="edit-products-btn"
+              @click="emit('open-edit-products-modal')"
+            >
+              ✏️ Editar productos
+            </button>
+          </div>
           <ul class="product-list-detail">
             <li v-for="(product, index) in credit.products" :key="index">
               <span>{{ product.name }}</span>
@@ -208,6 +218,27 @@ p strong {
 .status.pagado {
   background-color: rgba(176, 179, 184, 0.2);
   color: #b0b3b8;
+}
+.products-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.edit-products-btn {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  min-height: 40px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.edit-products-btn:hover {
+  background: rgba(59, 130, 246, 0.3);
 }
 .product-list-detail {
   list-style: none;

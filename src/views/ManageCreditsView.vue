@@ -2,7 +2,8 @@
 import AddProductsModal from '../components/AddProductsModal.vue'
 import BalanceModal from '../components/BalanceModal.vue'
 import EditPaymentModal from '../components/EditPaymentModal.vue'
-import { addProductsToCredit, addInstallmentsToCredit, editPayment, deletePayment, fetchCompletedCredits } from '../services/api.js'
+import EditProductsModal from '../components/EditProductsModal.vue'
+import { addProductsToCredit, addInstallmentsToCredit, editPayment, deletePayment, fetchCompletedCredits, updateCreditProducts } from '../services/api.js'
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
@@ -27,6 +28,8 @@ const isEditPaymentModalVisible = ref(false)
 const selectedPaymentIndex = ref(null)
 const selectedPayment = ref(null)
 const showCompletedCredits = ref(false)
+const isEditProductsModalVisible = ref(false)
+const isSavingProducts = ref(false)
 
 const filteredCredits = computed(() => {
   if (!searchTerm.value) return credits.value
@@ -61,6 +64,50 @@ async function handleAddProductsSubmit(data) {
     await refreshData()
   } catch (error) {
     toast.error('Error al actualizar el crédito.')
+  }
+}
+
+function openEditProductsModal() {
+  isDetailModalVisible.value = false
+  isEditProductsModalVisible.value = true
+}
+
+function closeEditProductsModal() {
+  isEditProductsModalVisible.value = false
+  isDetailModalVisible.value = true // Vuelve al detalle del crédito
+}
+
+async function handleEditProductsSubmit({ products, additionalInstallments }) {
+  isSavingProducts.value = true
+  try {
+    const response = await updateCreditProducts(
+      selectedCredit.value._id,
+      products,
+      additionalInstallments,
+    )
+    selectedCredit.value = response.data
+    isEditProductsModalVisible.value = false
+    isDetailModalVisible.value = true
+    const updated = response.data
+    const totalPaid = updated.paymentHistory.reduce((sum, p) => sum + (p.amount || 0), 0)
+    const overpaid = totalPaid - updated.originalAmount
+    if (overpaid > 0) {
+      toast.warning(
+        `Crédito pagado. El cliente tiene ${formatCurrency(overpaid)} pagados de más.`,
+        { timeout: 10000 },
+      )
+    } else {
+      toast.success(
+        updated.status === 'pagado'
+          ? 'Productos actualizados. El crédito quedó pagado.'
+          : 'Productos actualizados correctamente.',
+      )
+    }
+    await refreshData()
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Error al actualizar los productos.')
+  } finally {
+    isSavingProducts.value = false
   }
 }
 
@@ -217,6 +264,7 @@ function formatDate(dateString) {
     @close="isDetailModalVisible = false"
     @open-payment-modal="openPaymentModal"
     @open-add-products-modal="openAddProductsModal"
+    @open-edit-products-modal="openEditProductsModal"
     @delete-credit="handleDeleteCredit"
     @edit-credit="handleEditCredit"
     @edit-payment="handleEditPayment"
@@ -233,6 +281,13 @@ function formatDate(dateString) {
     :credit="selectedCredit"
     @close="isAddProductsModalVisible = false"
     @submit="handleAddProductsSubmit"
+  />
+  <EditProductsModal
+    v-if="isEditProductsModalVisible"
+    :credit="selectedCredit"
+    :saving="isSavingProducts"
+    @close="closeEditProductsModal"
+    @submit="handleEditProductsSubmit"
   />
   <BalanceModal
     v-if="isBalanceModalVisible"

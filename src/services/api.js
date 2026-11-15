@@ -40,3 +40,7 @@ export const fetchAllCompletedSales = (startDate, endDate) => {
 }
 // Añade esta función en la sección de CRÉDITOS
 export const addProductsToCredit = (id, data) => apiClient.post(`/credits/${id}/add-products`, data)
+
+// Reemplaza la lista de productos de un crédito (editar / eliminar items)
+export const updateCreditProducts = (id, products, additionalInstallments = 0) =>
+  apiClient.put(`/credits/${id}/products`, { products, additionalInstallments })
